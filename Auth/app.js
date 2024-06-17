@@ -5,6 +5,6 @@ const router = require("./app/routes/index.js");
 
 initializeDatabase();
 app.use(express.json());
-app.use("/api", router);
+app.use("/", router);
 
 module.exports = app;

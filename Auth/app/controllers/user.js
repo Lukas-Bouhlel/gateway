@@ -10,10 +10,8 @@ exports.register = async (req, res) => {
         return res.status(400).send('Email et mot de passe sont requis');
     }
     
-    const hashedPassword = await bcrypt.hash(password, 10);
-    
     try {
-        const newUser = new User({ email, password: hashedPassword });
+        const newUser = new User({ email, password });
         await newUser.save();
         res.status(201).send('Utilisateur inscrit avec succès');
     } catch (err) {
@@ -27,19 +25,23 @@ exports.login = async (req, res) => {
         return res.status(400).send('Email et mot de passe sont requis');
     }
 
-    const user = await User.findOne({ email });
-    if (!user) {
-        return res.status(401).send('Utilisateur non trouvé');
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(401).send('Utilisateur non trouvé');
+        }
+
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(401).send('Mot de passe incorrect');
+        }
+
+        const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
+
+        res.json({ token });
+    } catch (err) {
+        res.status(500).send('Erreur lors de la connexion de l\'utilisateur');
     }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-        return res.status(401).send('Mot de passe incorrect');
-    }
-
-    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
-
-    res.json({ token });
 };
 
 exports.getUserById = async (req, res) => {
